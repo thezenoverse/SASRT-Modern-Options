@@ -1,10 +1,11 @@
 // SASRT Modern Options - goal: put the launcher's settings (resolution, AA, controls, ...) into the
 // game's own Options menu.
 //
-// Step 1 (this build): research helpers. Press F5 in-game to write into "<mod>\Dumps\":
+// Research helpers (debug builds only, MO_DEBUG_TOOLS): press F5 in-game to write into "<mod>\Dumps\":
 //   screen_<time>.png  - the current frame (D3D9 back buffer; GDI fallback)
 //   files_<time>.txt   - every file the game opened since the previous F5
-// Open the Options menu, press F5, and the file list shows which data files the menu loads.
+// F8 dumps the UI elements, F6 / F7 move the Controller Options menu entry.
+// Release builds only write "<mod>\ModernOptions.log".
 #include "game.h"
 
 wchar_t g_modDirectory[MAX_PATH];
@@ -51,7 +52,7 @@ void DumpPath(wchar_t* out, size_t outLen, const wchar_t* stamp, const wchar_t* 
 // Writes the game executable as it sits in memory (after Steam's DRM wrapper has decrypted it)
 // to "<Dumps>\\ASN_App_PcDx9_Final.dumped.exe", laid out so disassemblers can load it directly
 // (section raw offsets = virtual addresses). Done once; delete the file to dump again.
-static void DumpExeImage(void)
+static void __attribute__((unused)) DumpExeImage(void)
 {
     wchar_t path[MAX_PATH];
     _snwprintf(path, MAX_PATH, L"%s\\ASN_App_PcDx9_Final.dumped.exe", g_dumpDirectory);
@@ -137,7 +138,7 @@ static void OnDumpKey(void)
     MessageBeep(MB_OK);
 }
 
-static DWORD WINAPI KeyThread(LPVOID param)
+static DWORD WINAPI __attribute__((unused)) KeyThread(LPVOID param)
 {
     (void)param;
     int was5 = 0, was6 = 0, was7 = 0, was8 = 0;
@@ -244,10 +245,14 @@ __declspec(dllexport) void Init(SumoModInfo* info)
 
     _snwprintf(g_dumpDirectory, MAX_PATH, L"%s\\Dumps", g_modDirectory);
     g_dumpDirectory[MAX_PATH - 1] = 0;
-    CreateDirectoryW(g_dumpDirectory, NULL);
 
     wchar_t logPath[MAX_PATH];
+#if MO_DEBUG_TOOLS
+    CreateDirectoryW(g_dumpDirectory, NULL);
     _snwprintf(logPath, MAX_PATH, L"%s\\ModernOptions.log", g_dumpDirectory);
+#else
+    _snwprintf(logPath, MAX_PATH, L"%s\\ModernOptions.log", g_modDirectory);
+#endif
     logPath[MAX_PATH - 1] = 0;
     s_logFile = CreateFileW(logPath, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (s_logFile != INVALID_HANDLE_VALUE)
@@ -258,7 +263,9 @@ __declspec(dllexport) void Init(SumoModInfo* info)
     }
 
     Log(L"%s %s loaded from %s", MO_NAME, MO_VERSION, g_modDirectory);
+#if MO_DEBUG_TOOLS
     FileLogInstall();
+#endif
     StringsInstall();
     if (MenuPatchInstall())
         VideoMenuInstall();
@@ -270,13 +277,15 @@ __declspec(dllexport) void Init(SumoModInfo* info)
 __declspec(dllexport) void PostInit(SumoModInfo* info)
 {
     (void)info;
+#if MO_DEBUG_TOOLS
     DumpExeImage();
     D3D9HookInstall();
 
     HANDLE thread = CreateThread(NULL, 0, KeyThread, NULL, 0, NULL);
     if (thread)
         CloseHandle(thread);
-    Log(L"Press F5 in-game to dump the screen and the list of opened files");
+    Log(L"Debug tools on: F5 dumps the screen and the list of opened files, F8 the UI elements");
+#endif
 }
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)

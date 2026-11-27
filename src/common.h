@@ -16,6 +16,12 @@
 #define MO_NAME L"Modern Options"
 #define MO_VERSION L"1.4.0"
 
+// Research tools (F5 screen + opened-files dump, F6/F7 controller menu position, F8 UI element
+// dump, executable dump, file-open log). Off in release builds; `make DEBUG_TOOLS=1` turns them on.
+#ifndef MO_DEBUG_TOOLS
+#define MO_DEBUG_TOOLS 0
+#endif
+
 // Passed in by Sumo Engine Mod Loader to Init/PostInit (see the SumoModLoader README).
 typedef struct SumoModInfo
 {

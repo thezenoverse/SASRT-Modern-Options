@@ -1,11 +1,15 @@
 # Builds ModernOptions.dll (32-bit) for Sonic & All-Stars Racing Transformed with MinGW-w64.
 #   make                          -> build/ModernOptions.dll, copied into mod/
+#   make DEBUG_TOOLS=1            -> the same with the research helpers (F5/F8 dumps)
 #   make install GAME_DIR="..."   -> copies mod/ to "<GAME_DIR>/mods/Modern Options"
 
 CROSS   ?= i686-w64-mingw32-
 CC      := $(CROSS)gcc
 
 CFLAGS  := -O2 -Wall -Wextra -std=gnu11 -DUNICODE -D_UNICODE
+ifeq ($(DEBUG_TOOLS),1)
+CFLAGS  += -DMO_DEBUG_TOOLS=1
+endif
 LDFLAGS := -shared -static-libgcc -Wl,--dynamicbase -Wl,--nxcompat -Wl,--kill-at
 LIBS    := -lkernel32 -luser32 -lgdi32 -lshell32
 

@@ -16,8 +16,8 @@
 // When the loaded menu scene still has the normal layout's toggle text elements, this restores
 // the table and builds Controller Options (and DISPLAY OPTIONS) with the normal layout again.
 // Controller Options also gets a menu position (the MENUPOS_GROUP "POS_n" animation the menu
-// plays when shown, which can move and resize it). ModernOptions.ini [Layout]
-// ControllerMenuPos sets it, and F6/F7 step through values in-game to find the right one.
+// plays when shown, which can move and resize it). Position 0 matches the Xbox 360 version;
+// debug builds can step it with F6/F7.
 #include "game.h"
 
 #define TABLE_NORMAL            0x00B7C908
@@ -27,8 +27,10 @@ typedef void* (__thiscall* FindTexture_t)(void* registry, unsigned int hash);
 #define FindTextureElement ((FindTexture_t)0x004972A0)
 
 volatile int g_normalToggles = 0;
-static float s_compactScale = 0.77f;   // ModernOptions.ini [Layout] CompactScale (1 = off)
-static int s_compactSpacing = 1;       // ModernOptions.ini [Layout] CompactSpacing (remove PC spacers)
+// The PC port draws the compact layout bigger than the Xbox 360 version: its rows and text are
+// scaled by this, and the extra space it adds between rows is removed.
+static float s_compactScale = 0.77f;   // (1 while a wide menu is being set up)
+static const int s_compactSpacing = 1;
 volatile int g_controllerMenuPos = 0;
 static int s_checked = 0;
 
@@ -695,17 +697,6 @@ static int __cdecl ControllerMenuBuild(void* menu, int a2, int small, int a4, in
 
 int LayoutFixInstall(void)
 {
-    wchar_t ini[MAX_PATH];
-    _snwprintf(ini, MAX_PATH, L"%s\\ModernOptions.ini", g_modDirectory);
-    ini[MAX_PATH - 1] = 0;
-    g_controllerMenuPos = (int)GetPrivateProfileIntW(L"Layout", L"ControllerMenuPos", 0, ini);
-    s_compactSpacing = (int)GetPrivateProfileIntW(L"Layout", L"CompactSpacing", 1, ini);
-    wchar_t scale[32];
-    GetPrivateProfileStringW(L"Layout", L"CompactScale", L"0.77", scale, 32, ini);
-    s_compactScale = (float)_wtof(scale);
-    if (s_compactScale < 0.3f || s_compactScale > 2.0f)
-        s_compactScale = 1.0f;
-
     unsigned char call[5] = { 0xE8 };
     *(LONG*)(call + 1) = (LONG)(0x0074BA60 - (ADDR_CALL_CTRL_BUILD + 5));
     if (!PatchExpect(ADDR_CALL_CTRL_BUILD, call, 5))
